@@ -1,0 +1,479 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { SlotChip } from "@/components/ui/slot-chip";
+import { Stepper } from "@/components/ui/stepper";
+import { cn } from "@/lib/cn";
+import { formatPrice } from "@/lib/format";
+import { addDays, localToInstant, todayLocal } from "@/lib/booking/time";
+import type { BookingMode } from "@/lib/config";
+
+export interface BookableService {
+  id: string;
+  slug: string;
+  name: string;
+  priceInPaise: number | null;
+  isFromPrice: boolean;
+  durationMin: number;
+}
+
+export interface PublicBarber {
+  id: string;
+  name: string;
+  serviceIds: string[];
+}
+
+interface Slot {
+  startsAt: string;
+  label: string;
+}
+
+interface ConfirmedBooking {
+  id: string;
+  serviceName: string;
+  barberName: string;
+  startsAt: string;
+  status: "PENDING" | "CONFIRMED";
+}
+
+const STEPS = ["Service", "Barber", "Date & time", "Details", "Confirm"];
+const ANY_BARBER = "any";
+const DATE_OPTIONS = 14;
+
+const salonDate = new Intl.DateTimeFormat("en-IN", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "Asia/Kolkata",
+});
+
+const salonDateTime = new Intl.DateTimeFormat("en-IN", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "Asia/Kolkata",
+});
+
+/** Turns a salon-local date into a label like "Mon, 19 Oct". Noon avoids any date edge. */
+function dateLabel(date: string): string {
+  return salonDate.format(localToInstant(date, 720));
+}
+
+export function BookingFlow({
+  services,
+  barbers,
+  mode,
+  isDemo,
+}: {
+  services: BookableService[];
+  barbers: PublicBarber[];
+  mode: BookingMode;
+  isDemo: boolean;
+}) {
+  const params = useSearchParams();
+  const requestedSlug = params.get("service");
+
+  const [step, setStep] = useState(0);
+  const [serviceId, setServiceId] = useState<string | null>(
+    () => services.find((service) => service.slug === requestedSlug)?.id ?? null,
+  );
+  const [staffId, setStaffId] = useState<string>(ANY_BARBER);
+  const [date, setDate] = useState<string | null>(null);
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [startsAt, setStartsAt] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmed, setConfirmed] = useState<ConfirmedBooking | null>(null);
+  // One key per attempt. A retry of the same submit replays instead of double-booking.
+  const idempotencyKey = useRef<string>(crypto.randomUUID());
+  const latestSlotRequest = useRef(0);
+
+  const today = todayLocal(new Date());
+  const dates = Array.from({ length: DATE_OPTIONS }, (_, index) => addDays(today, index));
+  const service = services.find((item) => item.id === serviceId) ?? null;
+  const eligibleBarbers = barbers.filter(
+    (barber) => service?.id && barber.serviceIds.includes(service.id),
+  );
+  const barber = eligibleBarbers.find((item) => item.id === staffId) ?? null;
+  const startLabel =
+    startsAt && slots ? (slots.find((slot) => slot.startsAt === startsAt)?.label ?? null) : null;
+
+  async function loadSlots(nextDate: string, nextStaff: string) {
+    if (!serviceId) return;
+    const request = ++latestSlotRequest.current;
+    setSlots(null);
+    setSlotsError(null);
+    const query = new URLSearchParams({ serviceId, staffId: nextStaff, date: nextDate });
+    try {
+      const response = await fetch(`/api/availability?${query}`);
+      const data = await response.json();
+      if (request !== latestSlotRequest.current) return;
+      if (!response.ok) {
+        setSlotsError("Couldn't load times. Please try again.");
+        return;
+      }
+      setSlots(data.slots);
+    } catch {
+      if (request === latestSlotRequest.current)
+        setSlotsError("Couldn't load times. Check your connection.");
+    }
+  }
+
+  function chooseDate(nextDate: string) {
+    setDate(nextDate);
+    setStartsAt(null);
+    loadSlots(nextDate, staffId);
+  }
+
+  async function submit() {
+    if (!service || !startsAt) return;
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          serviceId: service.id,
+          staffId,
+          startsAt,
+          name,
+          phone,
+          email: email || undefined,
+          notes: notes || undefined,
+          consent: true,
+          idempotencyKey: idempotencyKey.current,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setConfirmed(data.appointment);
+        return;
+      }
+      if (response.status === 409) {
+        setFormError(
+          data.error === "DUPLICATE_BOOKING"
+            ? "This phone number already has a booking at that time."
+            : "That time was just taken. Please choose another.",
+        );
+        setStartsAt(null);
+        setStep(2);
+        if (date) loadSlots(date, staffId);
+        return;
+      }
+      if (response.status === 422 && data.fieldErrors) {
+        const first = Object.values(data.fieldErrors).flat()[0];
+        setFormError(typeof first === "string" ? first : "Please check your details.");
+        return;
+      }
+      setFormError("Something went wrong. Nothing was booked. Please try again.");
+    } catch {
+      setFormError("Couldn't reach the booking service. Nothing was booked.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (confirmed) {
+    const when = salonDateTime.format(new Date(confirmed.startsAt));
+    const isPending = confirmed.status === "PENDING";
+    return (
+      <div role="status" className="flex max-w-2xl flex-col gap-6">
+        {isDemo && (
+          <p className="border-l border-brass-600 pl-3 text-sm text-brass-300">
+            Demo booking. It is stored only in this demo server&apos;s memory. No real appointment
+            was made and no message was sent.
+          </p>
+        )}
+        <h2 className="font-display text-5xl font-light">
+          {isPending ? "Request received" : "You're booked"}
+        </h2>
+        <p className="text-bone-300">
+          {isPending
+            ? "The salon will confirm your request shortly. Your slot is held in the meantime."
+            : "Your appointment is confirmed."}
+        </p>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-y border-line py-6 text-sm">
+          <dt className="text-bone-500">Service</dt>
+          <dd>{confirmed.serviceName}</dd>
+          <dt className="text-bone-500">Barber</dt>
+          <dd>{confirmed.barberName}</dd>
+          <dt className="text-bone-500">When</dt>
+          <dd>{when}</dd>
+          <dt className="text-bone-500">Status</dt>
+          <dd>{isPending ? "Pending confirmation" : "Confirmed"}</dd>
+        </dl>
+      </div>
+    );
+  }
+
+  const detailsValid = name.trim().length >= 2 && phone.replace(/\D/g, "").length >= 10 && consent;
+
+  return (
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex min-w-0 flex-col gap-10">
+        <Stepper steps={STEPS} current={step} />
+
+        {formError && (
+          <p role="alert" className="border-l-2 border-err pl-4 text-sm text-err">
+            {formError}
+          </p>
+        )}
+
+        {step === 0 && (
+          <fieldset className="flex flex-col gap-3">
+            <legend className="mb-4 font-display text-3xl font-light">Choose a service</legend>
+            {services.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={serviceId === item.id}
+                onClick={() => {
+                  setServiceId(item.id);
+                  setStaffId(ANY_BARBER);
+                }}
+                className={cn(
+                  "flex min-h-14 items-center justify-between gap-4 border px-5 py-4 text-left",
+                  serviceId === item.id ? "border-brass-400" : "border-line hover:border-brass-600",
+                )}
+              >
+                <span>
+                  <span className="block font-display text-xl font-light">{item.name}</span>
+                  <span className="text-xs text-bone-500">{item.durationMin} min</span>
+                </span>
+                <span className="text-sm">{formatPrice(item.priceInPaise, item.isFromPrice)}</span>
+              </button>
+            ))}
+          </fieldset>
+        )}
+
+        {step === 1 && (
+          <fieldset className="flex flex-col gap-3">
+            <legend className="mb-4 font-display text-3xl font-light">Choose a barber</legend>
+            {[{ id: ANY_BARBER, name: "Any available barber" }, ...eligibleBarbers].map(
+              (option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={staffId === option.id}
+                  onClick={() => setStaffId(option.id)}
+                  className={cn(
+                    "flex min-h-14 items-center border px-5 py-4 text-left font-display text-xl font-light",
+                    staffId === option.id
+                      ? "border-brass-400"
+                      : "border-line hover:border-brass-600",
+                  )}
+                >
+                  {option.name}
+                </button>
+              ),
+            )}
+          </fieldset>
+        )}
+
+        {step === 2 && (
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4">
+              <h2 className="font-display text-3xl font-light">Choose a date</h2>
+              <div
+                role="group"
+                aria-label="Dates"
+                className="flex snap-x gap-2 overflow-x-auto pb-2"
+              >
+                {dates.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={date === option}
+                    onClick={() => chooseDate(option)}
+                    className={cn(
+                      "min-h-14 min-w-20 shrink-0 snap-start border px-3 text-sm",
+                      date === option
+                        ? "border-brass-400 bg-brass-400 text-ink-950"
+                        : "border-line hover:border-brass-600",
+                    )}
+                  >
+                    {dateLabel(option)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {date && (
+              <div className="flex flex-col gap-4" aria-live="polite">
+                <h2 className="font-display text-3xl font-light">Choose a time</h2>
+                {slotsError && <p className="text-sm text-err">{slotsError}</p>}
+                {!slotsError && slots === null && (
+                  <p className="text-sm text-bone-500">Loading times…</p>
+                )}
+                {slots && slots.length === 0 && (
+                  <p className="text-sm text-bone-300">
+                    No times left on {dateLabel(date)}. Try another day.
+                  </p>
+                )}
+                {slots && slots.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {slots.map((slot) => (
+                      <SlotChip
+                        key={slot.startsAt}
+                        time={slot.label}
+                        selected={startsAt === slot.startsAt}
+                        onSelect={() => setStartsAt(slot.startsAt)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="flex max-w-lg flex-col gap-6">
+            <h2 className="font-display text-3xl font-light">Your details</h2>
+            <Field
+              id="booking-name"
+              label="Full name"
+              required
+              autoComplete="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <Field
+              id="booking-phone"
+              label="Mobile number"
+              required
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              hint="Indian mobile. We use it only for this booking."
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+            <Field
+              id="booking-email"
+              label="Email (optional)"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <div className="flex flex-col gap-2">
+              <label htmlFor="booking-notes" className="text-sm">
+                Notes (optional)
+              </label>
+              <textarea
+                id="booking-notes"
+                rows={3}
+                maxLength={300}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                className="rounded-[2px] border border-line bg-ink-800 p-4 text-bone-100 focus:border-brass-400"
+              />
+            </div>
+            <label className="flex gap-3 text-sm text-bone-300">
+              <input
+                type="checkbox"
+                required
+                checked={consent}
+                onChange={(event) => setConsent(event.target.checked)}
+                className="mt-1 size-4 accent-brass-400"
+              />
+              <span>
+                I agree that my name and number can be used to manage this booking and for reminders
+                about it.
+              </span>
+            </label>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="flex max-w-lg flex-col gap-6">
+            <h2 className="font-display text-3xl font-light">Review and confirm</h2>
+            <p className="text-bone-300">
+              {mode === "instant"
+                ? "Your booking is confirmed as soon as you submit."
+                : "Your request goes to the salon for confirmation."}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-8">
+          <Button
+            variant="tertiary"
+            onClick={() => setStep((current) => Math.max(0, current - 1))}
+            disabled={step === 0}
+          >
+            Back
+          </Button>
+          {step < 4 && (
+            <Button
+              onClick={() => setStep((current) => current + 1)}
+              disabled={
+                (step === 0 && !serviceId) ||
+                (step === 1 && !staffId) ||
+                (step === 2 && !startsAt) ||
+                (step === 3 && !detailsValid)
+              }
+            >
+              Continue
+            </Button>
+          )}
+          {step === 4 && (
+            <Button onClick={submit} disabled={submitting}>
+              {submitting ? "Booking…" : mode === "instant" ? "Confirm booking" : "Send request"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <aside
+        aria-label="Booking summary"
+        className="h-fit border border-line bg-ink-900 p-6 lg:sticky lg:top-28"
+      >
+        <p className="text-xs tracking-[0.18em] text-brass-400 uppercase">Summary</p>
+        <dl className="mt-6 flex flex-col gap-4 text-sm">
+          <div>
+            <dt className="text-bone-500">Service</dt>
+            <dd>{service ? `${service.name}, ${service.durationMin} min` : "Not chosen"}</dd>
+          </div>
+          <div>
+            <dt className="text-bone-500">Barber</dt>
+            <dd>{staffId === ANY_BARBER ? "Any available" : (barber?.name ?? "Not chosen")}</dd>
+          </div>
+          <div>
+            <dt className="text-bone-500">Date and time</dt>
+            <dd>
+              {date ? dateLabel(date) : "Not chosen"}
+              {startLabel ? `, ${startLabel}` : ""}
+            </dd>
+          </div>
+          {service && (
+            <div>
+              <dt className="text-bone-500">Price</dt>
+              <dd>{formatPrice(service.priceInPaise, service.isFromPrice)}</dd>
+            </div>
+          )}
+        </dl>
+        {isDemo && (
+          <p className="mt-6 border-t border-line pt-4 text-xs text-brass-300">
+            Demo: sample prices and times. Nothing is sent to a real phone or inbox.
+          </p>
+        )}
+      </aside>
+    </div>
+  );
+}

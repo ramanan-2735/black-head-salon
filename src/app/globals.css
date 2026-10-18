@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/*
+ * "Barber's Ledger" colour tokens (planning/02 §5).
+ * Dark-only: the brand is a lamplit black room, so there is no light theme.
+ * Brass covers at most ~5% of any viewport. Never use it for body text.
+ */
+@theme inline {
+  --color-ink-950: #0b0b0c;
+  --color-ink-900: #121214;
+  --color-ink-800: #1a1a1d;
+  --color-ink-700: #26262a;
+  --color-line: #2e2b27;
+  --color-bone-100: #ede8df;
+  --color-bone-300: #b9b2a6;
+  --color-bone-500: #8c8579;
+  --color-brass-300: #ddc08f;
+  --color-brass-400: #c9a46a;
+  --color-brass-600: #9c7a45;
+  --color-paper-100: #f2eee7;
+  --color-ok: #7fa27b;
+  --color-warn: #d9a74a;
+  --color-err: #d2675a;
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-geist-sans);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-ink-950);
+}
+
+body {
+  background: var(--color-ink-950);
+  color: var(--color-bone-100);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass-400);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Scroll-linked reveal: content rises and fades in as it enters the viewport.
+ * Pure CSS, so there is no JavaScript cost. Browsers without scroll-driven
+ * animations show the content straight away.
+ */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+}
