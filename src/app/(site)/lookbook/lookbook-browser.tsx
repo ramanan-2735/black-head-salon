@@ -103,7 +103,7 @@ export function LookbookBrowser({
             <p className="text-sm text-bone-300">{selected.alt}</p>
             <div className="flex flex-wrap gap-4">
               <ButtonLink href={`/book?look=${encodeURIComponent(selected.id)}`}>
-                Book this look
+                Book
               </ButtonLink>
               <Link
                 href="/services"

@@ -88,7 +88,7 @@ export default async function Home() {
         </div>
       </Section>
 
-      <Section id="lookbook" eyebrow="Lookbook" title="Recent styles">
+      <Section id="lookbook" eyebrow="Lookbook" title="Sample styles">
         <div
           role="region"
           tabIndex={0}
@@ -134,11 +134,14 @@ export default async function Home() {
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900 shadow-2xl">
             <Image
               src="/images/salon-interior.jpg"
-              alt="Black Head Salon grooming chairs, mirrors and atmosphere"
+              alt="Placeholder image for the salon section. Not a Black Head Salon photo."
               fill
               sizes="(min-width: 768px) 50vw, 100vw"
               className="object-cover"
             />
+            <p className="absolute bottom-0 left-0 right-0 bg-ink-900/80 px-4 py-2 text-xs text-bone-300">
+              Placeholder image until the owner supplies salon photos.
+            </p>
           </div>
           <div className="flex flex-col gap-6">
             <p className="text-lg leading-relaxed text-bone-300">
@@ -185,7 +188,7 @@ export default async function Home() {
           </div>
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900 p-6 flex flex-col justify-between">
             <div className="flex flex-col gap-2">
-              <span className="text-xs tracking-[0.18em] text-brass-400 uppercase">Google Maps · 2439+C6 Panvel</span>
+              <span className="text-xs tracking-[0.18em] text-brass-400 uppercase">Location · 2439+C6 Panvel</span>
               <p className="font-display text-2xl text-bone-100">Krishna Arcade CHS</p>
               <p className="text-sm text-bone-300">
                 Sector 5, New Panvel East, Panvel, Maharashtra 410206.
