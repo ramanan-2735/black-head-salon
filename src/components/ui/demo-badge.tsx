@@ -8,7 +8,7 @@ export function DemoBadge() {
       role="note"
       className="border-l border-brass-600 pl-3 text-xs tracking-[0.14em] text-brass-300 uppercase"
     >
-      Demo — sample content, nothing is booked or sent
+      Premier Grooming & Hair Artistry · New Panvel
     </p>
   );
 }
