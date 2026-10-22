@@ -13,8 +13,8 @@ import type { Business } from "@/lib/repos/types";
 export const business: Business = {
   name: "Black Head Salon",
   address: "Krishna Arcade CHS, Sector 5, New Panvel East, Panvel, Maharashtra 410206",
-  phone: "+91 99677 95720",
-  whatsapp: "+91 99677 95720",
+  phone: "+91 88796 36143",
+  whatsapp: "+91 88796 36143",
   mapsUrl: "https://www.google.com/maps/search/?api=1&query=Black+Head+Salon+Krishna+Arcade+CHS+Sector+5+New+Panvel+East+Panvel+Maharashtra+410206",
   instagram: "blackheadsalon",
   hours: {
