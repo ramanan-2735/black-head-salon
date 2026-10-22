@@ -185,16 +185,19 @@ export default async function Home() {
           </div>
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900 p-6 flex flex-col justify-between">
             <div className="flex flex-col gap-2">
-              <span className="text-xs tracking-[0.18em] text-brass-400 uppercase">Location Guide</span>
-              <p className="font-display text-2xl text-bone-100">New Panvel East</p>
+              <span className="text-xs tracking-[0.18em] text-brass-400 uppercase">Google Maps · 2439+C6 Panvel</span>
+              <p className="font-display text-2xl text-bone-100">Krishna Arcade CHS</p>
               <p className="text-sm text-bone-300">
-                Krishna Arcade CHS, Sector 5, conveniently accessible from Panvel station and Khanda Colony.
+                Sector 5, New Panvel East, Panvel, Maharashtra 410206.
+              </p>
+              <p className="mt-1 text-xs text-bone-500">
+                Plus Code: <span className="font-mono text-brass-300">2439+C6 Panvel, Maharashtra</span>
               </p>
             </div>
             {business.mapsUrl && (
-              <div className="mt-6">
+              <div className="mt-6 flex flex-wrap gap-4">
                 <ButtonLink href={business.mapsUrl} target="_blank" rel="noopener noreferrer">
-                  Open in Google Maps
+                  Directions on Google Maps
                 </ButtonLink>
               </div>
             )}

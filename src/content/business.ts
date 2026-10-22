@@ -15,7 +15,7 @@ export const business: Business = {
   address: "Krishna Arcade CHS, Sector 5, New Panvel East, Panvel, Maharashtra 410206",
   phone: "+91 99677 95720",
   whatsapp: "+91 99677 95720",
-  mapsUrl: "https://maps.google.com/?q=Krishna+Arcade+CHS+Sector+5+New+Panvel+East+Panvel+Maharashtra+410206",
+  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Black+Head+Salon+Krishna+Arcade+CHS+Sector+5+New+Panvel+East+Panvel+Maharashtra+410206",
   instagram: "blackheadsalon",
   hours: {
     1: { open: "10:00", close: "21:00" }, // Mon
