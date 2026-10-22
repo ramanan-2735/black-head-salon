@@ -21,7 +21,7 @@ export function Section({
     <section
       id={id}
       aria-labelledby={title ? titleId : undefined}
-      className={cn("px-6 py-20 md:px-12 md:py-32", className)}
+      className={cn("px-6 py-14 md:px-12 md:py-20", className)}
     >
       {(eyebrow || title) && (
         <header className="mb-12 flex flex-col gap-4">

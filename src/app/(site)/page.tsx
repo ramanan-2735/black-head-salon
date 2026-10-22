@@ -60,14 +60,16 @@ export default async function Home() {
         </div>
       </section>
 
-      <ul className="grid gap-6 border-y border-line px-6 py-8 text-sm text-bone-300 md:grid-cols-3 md:px-12">
-        {proof.map((item) => (
-          <li key={item} className="flex items-center gap-3">
-            <span aria-hidden="true" className="h-px w-8 bg-brass-600" />
-            {item}
-          </li>
-        ))}
-      </ul>
+      <div className="border-y border-line bg-ink-900/60 px-6 py-6 md:px-12">
+        <ul className="mx-auto flex max-w-4xl flex-wrap items-center justify-around gap-6 text-xs tracking-[0.14em] text-bone-300 uppercase">
+          {proof.map((item) => (
+            <li key={item} className="flex items-center gap-3">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-brass-400" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <Section id="services" eyebrow="The menu" title="Services & prices">
         <Reveal>
@@ -81,7 +83,7 @@ export default async function Home() {
             ))}
           </ul>
         </Reveal>
-        <div className="mt-12">
+        <div className="mt-8">
           <ButtonLink href="/services" variant="tertiary">
             Full menu
           </ButtonLink>
