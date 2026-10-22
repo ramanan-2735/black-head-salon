@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
-import { PlaceholderImage } from "@/components/site/placeholder-image";
+import Image from "next/image";
+import { BarberBadge } from "@/components/site/barber-badge";
+import { HoursList } from "@/components/site/hours-list";
+import { InstagramCallout } from "@/components/site/instagram-callout";
 import { Reveal } from "@/components/site/reveal";
-import { RazorHero } from "@/components/three/razor-hero";
 import { ButtonLink } from "@/components/ui/button";
 import { DemoBadge } from "@/components/ui/demo-badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { LedgerRow } from "@/components/ui/ledger-row";
 import { Section } from "@/components/ui/section";
+import { barbers } from "@/content/staff";
+import { cutCredit } from "@/lib/gallery";
 import { BOOK_HREF } from "@/lib/site-nav";
 import { contentRepository } from "@/lib/repos/static-content-repo";
 
+const staffCredits = barbers.map((barber) => ({ id: barber.id, name: barber.name }));
+
 export const metadata: Metadata = {
-  title: { absolute: "Black Head Salon — Haircuts, fades & beard work" },
+  title: { absolute: "Black Head Salon — Haircuts, Fades & Beard Work in Panvel" },
   description:
-    "Book a haircut, fade or beard trim at Black Head Salon. Sample copy until the owner confirms details.",
+    "Premium barbershop and grooming studio in New Panvel. Master fades, beard sculpts, and sharp haircuts.",
 };
 
 const proof = ["Haircuts & fades", "Beard & shave", "Book in a few taps"];
@@ -50,9 +56,6 @@ export default async function Home() {
                 Explore services
               </ButtonLink>
             </div>
-          </div>
-          <div className="md:col-span-5 md:col-start-8">
-            <RazorHero />
           </div>
         </div>
       </section>
@@ -95,36 +98,107 @@ export default async function Home() {
           <ul className="flex snap-x gap-6 md:gap-8">
             {gallery.map((image) => (
               <li key={image.id} className="w-[72vw] shrink-0 snap-start md:w-80">
-                <PlaceholderImage label={image.alt} aspect="aspect-[3/4]" />
-                <p className="mt-4 text-sm text-bone-300">{image.caption}</p>
+                <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900">
+                  {image.src ? (
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(min-width: 768px) 20rem, 72vw"
+                      className="object-cover transition-transform duration-500 hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-bone-500">
+                      {image.alt}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-col gap-3">
+                  <BarberBadge label={cutCredit(image, staffCredits)} />
+                  <p className="text-sm font-light text-bone-100">{image.caption}</p>
+                </div>
               </li>
             ))}
           </ul>
         </div>
-        <div className="mt-12">
-          <ButtonLink href="/lookbook" variant="tertiary">
+        <div className="mt-12 flex flex-col gap-12">
+          <ButtonLink href="/lookbook" variant="tertiary" className="self-start">
             View the lookbook
           </ButtonLink>
+          <InstagramCallout handle={business.instagram} />
         </div>
       </Section>
 
-      <Section id="about" eyebrow="The chair" title="Our story">
+      <Section id="about" eyebrow="The chair" title="Our craft">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
-          <PlaceholderImage label="Interior photograph — to come" aspect="aspect-[4/3]" />
-          <p className="text-lg text-bone-300">
-            The owner’s story goes here, in their own words. Placeholder copy until it is written
-            together.
-          </p>
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900 shadow-2xl">
+            <Image
+              src="/images/salon-interior.jpg"
+              alt="Black Head Salon grooming chairs, mirrors and atmosphere"
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
+          </div>
+          <div className="flex flex-col gap-6">
+            <p className="text-lg leading-relaxed text-bone-300">
+              Black Head Salon was built on a simple conviction: grooming is an art form of precision,
+              dignity, and character. We cater to gentlemen who value sharp fades, clean straight-razor lines,
+              and meticulous attention to detail.
+            </p>
+            <p className="text-sm leading-relaxed text-bone-500">
+              Located in the heart of New Panvel, every appointment is dedicated one-on-one time in the chair.
+              No rushed clippers, no cutting corners—just tailored hair and beard craftsmanship.
+            </p>
+          </div>
         </div>
       </Section>
 
       <Section id="visit" eyebrow="Visit" title="Find us">
         <div className="grid gap-12 md:grid-cols-2">
-          <div className="flex flex-col gap-4 text-bone-300">
-            <p>{business.address ?? "Address to be confirmed"}</p>
-            <p>Hours to be confirmed with the owner.</p>
+          <div className="flex flex-col gap-6 text-bone-300">
+            <div>
+              <p className="font-display text-xl text-bone-100">Black Head Salon</p>
+              <p className="mt-2 text-sm leading-relaxed text-bone-300">{business.address}</p>
+              {business.phone && (
+                <p className="mt-3 text-sm text-brass-300">
+                  <a href={`tel:${business.phone.replace(/\s+/g, "")}`} className="hover:underline">
+                    {business.phone}
+                  </a>
+                </p>
+              )}
+            </div>
+            <div className="border-t border-line pt-4">
+              <p className="mb-2 text-xs tracking-[0.14em] text-brass-400 uppercase">Weekly Hours</p>
+              <HoursList hours={business.hours} fallback="Hours to be confirmed with the owner." />
+            </div>
+            {business.mapsUrl && (
+              <a
+                href={business.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-fit items-center gap-2 text-sm text-brass-300 underline underline-offset-4 hover:text-brass-400"
+              >
+                Get directions on Google Maps &rarr;
+              </a>
+            )}
           </div>
-          <PlaceholderImage label="Map — to come" aspect="aspect-[4/3]" />
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2px] border border-line bg-ink-900 p-6 flex flex-col justify-between">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs tracking-[0.18em] text-brass-400 uppercase">Location Guide</span>
+              <p className="font-display text-2xl text-bone-100">New Panvel East</p>
+              <p className="text-sm text-bone-300">
+                Krishna Arcade CHS, Sector 5, conveniently accessible from Panvel station and Khanda Colony.
+              </p>
+            </div>
+            {business.mapsUrl && (
+              <div className="mt-6">
+                <ButtonLink href={business.mapsUrl} target="_blank" rel="noopener noreferrer">
+                  Open in Google Maps
+                </ButtonLink>
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 

@@ -15,3 +15,9 @@ export function filterGallery(
 ): GalleryImage[] {
   return category === "all" ? images : images.filter((image) => image.category === category);
 }
+
+/** "Cut by Sample barber 1 · Classic Cut". With no credited barber, only the style name is shown. */
+export function cutCredit(image: GalleryImage, barbers: { id: string; name: string }[]): string {
+  const barber = barbers.find((item) => item.id === image.barberId);
+  return barber ? `Cut by ${barber.name} · ${image.styleName}` : image.styleName;
+}

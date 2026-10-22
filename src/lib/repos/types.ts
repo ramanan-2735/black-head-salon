@@ -11,6 +11,8 @@ export interface Business {
   phone: string | null;
   whatsapp: string | null;
   mapsUrl: string | null;
+  /** Instagram handle without the @, e.g. "blackheadsalon". Null hides the callout. */
+  instagram: string | null;
   /** Weekday keys 0 (Sun) to 6 (Sat). Null hours mean "to be confirmed". */
   hours: Record<number, { open: string; close: string } | null> | null;
   timezone: string;
@@ -41,6 +43,10 @@ export interface GalleryImage {
   alt: string;
   caption: string;
   category: "fades" | "classic" | "textured" | "beard" | "kids";
+  /** Barber credited for the cut. Null means no credit line is shown. */
+  barberId: string | null;
+  /** Short style name shown in the credit line, e.g. "Fade & beard sculpt". */
+  styleName: string;
   /** Null renders a styled placeholder tile instead of an image. */
   src: string | null;
   isSample: boolean;

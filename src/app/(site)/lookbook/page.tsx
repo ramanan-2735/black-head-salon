@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { InstagramCallout } from "@/components/site/instagram-callout";
 import { DemoBadge } from "@/components/ui/demo-badge";
+import { barbers } from "@/content/staff";
 import { contentRepository } from "@/lib/repos/static-content-repo";
 import { LookbookBrowser } from "./lookbook-browser";
 
@@ -11,6 +13,8 @@ export const metadata: Metadata = {
 
 export default async function LookbookPage() {
   const images = await contentRepository.getGallery();
+  const business = await contentRepository.getBusiness();
+  const staffCredits = barbers.map((barber) => ({ id: barber.id, name: barber.name }));
 
   return (
     <main className="flex flex-1 flex-col gap-12 px-6 py-20 md:px-12 md:py-32">
@@ -24,7 +28,8 @@ export default async function LookbookPage() {
           are added with customer consent.
         </p>
       </header>
-      <LookbookBrowser images={images} />
+      <LookbookBrowser images={images} barbers={staffCredits} />
+      <InstagramCallout handle={business.instagram} />
     </main>
   );
 }

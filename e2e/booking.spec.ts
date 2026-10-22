@@ -30,7 +30,6 @@ async function fillDetails(page: Page, phone: string) {
   await page.getByLabel(/Full name/).fill("Test Customer");
   await page.getByLabel(/Mobile number/).fill(phone);
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Continue" }).click();
 }
 
 test("booking page has no WCAG 2.x A/AA violations on the first step", async ({ page }) => {
@@ -41,16 +40,24 @@ test("booking page has no WCAG 2.x A/AA violations on the first step", async ({ 
   expect(results.violations).toEqual([]);
 });
 
-test("a service from the menu preselects the booking flow", async ({ page }) => {
+test("a service from the menu preselects it and offers barbers with Any available chosen", async ({
+  page,
+}) => {
   await page.goto("/book?service=beard-trim");
+  const barbers = page.getByRole("group", { name: "Choose a barber" });
+  await expect(barbers).toBeVisible();
+  await expect(barbers.getByRole("button", { name: "Any available" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("group", { name: "Choose a barber" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose a date" })).toBeVisible();
 });
 
-test("a customer can complete a demo booking end to end", async ({ page }) => {
+test("a customer can complete a demo booking in three stages", async ({ page }) => {
   await page.goto("/book?service=classic-cut");
-  await page.getByRole("button", { name: "Continue" }).click(); // service
-  await page.getByRole("button", { name: "Continue" }).click(); // barber (any)
+  await page.getByRole("button", { name: "Continue" }).click(); // service & barber
 
   await pickFirstAvailableSlot(page);
   await page.getByRole("button", { name: "Continue" }).click(); // date & time
@@ -65,7 +72,6 @@ test("a customer can complete a demo booking end to end", async ({ page }) => {
 test("the server rejects a number that isn't an Indian mobile", async ({ page }) => {
   await page.goto("/book?service=classic-cut");
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Continue" }).click();
   await pickFirstAvailableSlot(page);
   await page.getByRole("button", { name: "Continue" }).click();
   await fillDetails(page, "1234567890");
@@ -79,7 +85,6 @@ test("the server rejects a number that isn't an Indian mobile", async ({ page })
 
 test("booking flow does not scroll horizontally on a phone", async ({ page }) => {
   await page.goto("/book?service=classic-cut");
-  await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await pickFirstAvailableSlot(page);
 

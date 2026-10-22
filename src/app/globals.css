@@ -2,18 +2,20 @@
 
 /*
  * "Barber's Ledger" colour tokens (planning/02 §5).
- * Dark-only: the brand is a lamplit black room, so there is no light theme.
+ * Dark-only: the brand is a lamplit room, so there is no light theme. The base is
+ * warm charcoal rather than pure black, so cards read as raised surfaces, and
+ * hairlines are bronze. Every text token keeps at least 4.5:1 on the surfaces it sits on.
  * Brass covers at most ~5% of any viewport. Never use it for body text.
  */
 @theme inline {
-  --color-ink-950: #0b0b0c;
-  --color-ink-900: #121214;
-  --color-ink-800: #1a1a1d;
-  --color-ink-700: #26262a;
-  --color-line: #2e2b27;
-  --color-bone-100: #ede8df;
-  --color-bone-300: #b9b2a6;
-  --color-bone-500: #8c8579;
+  --color-ink-950: #13110f;
+  --color-ink-900: #1c1917;
+  --color-ink-800: #252019;
+  --color-ink-700: #302a22;
+  --color-line: #3d3428;
+  --color-bone-100: #f1ebe1;
+  --color-bone-300: #cbc4b8;
+  --color-bone-500: #9a9184;
   --color-brass-300: #ddc08f;
   --color-brass-400: #c9a46a;
   --color-brass-600: #9c7a45;
@@ -45,6 +47,16 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-brass-400);
   outline-offset: 3px;
+}
+
+/*
+ * Raised dark surface with a faint warm light from the top-left corner, in place
+ * of a flat black box. Used for cards and floating controls.
+ */
+.surface-warm {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(201 164 106 / 0.08), transparent 60%),
+    var(--color-ink-900);
 }
 
 @media (prefers-reduced-motion: reduce) {

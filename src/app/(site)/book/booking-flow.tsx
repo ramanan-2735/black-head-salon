@@ -2,12 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Clock } from "@phosphor-icons/react";
+import { BarberBadge } from "@/components/site/barber-badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { SlotChip } from "@/components/ui/slot-chip";
 import { Stepper } from "@/components/ui/stepper";
 import { cn } from "@/lib/cn";
-import { formatPrice } from "@/lib/format";
+import { formatDuration, formatPrice } from "@/lib/format";
 import { addDays, localToInstant, todayLocal } from "@/lib/booking/time";
 import type { BookingMode } from "@/lib/config";
 
@@ -39,7 +41,9 @@ interface ConfirmedBooking {
   status: "PENDING" | "CONFIRMED";
 }
 
-const STEPS = ["Service", "Barber", "Date & time", "Details", "Confirm"];
+/** Three stages: service and barber, then date and time, then details and confirm. */
+const STAGE = { service: 0, time: 1, details: 2 } as const;
+const STEPS = ["Service & barber", "Date & time", "Your details"];
 const ANY_BARBER = "any";
 const DATE_OPTIONS = 14;
 
@@ -79,7 +83,7 @@ export function BookingFlow({
   const params = useSearchParams();
   const requestedSlug = params.get("service");
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number>(STAGE.service);
   const [serviceId, setServiceId] = useState<string | null>(
     () => services.find((service) => service.slug === requestedSlug)?.id ?? null,
   );
@@ -107,8 +111,10 @@ export function BookingFlow({
     (barber) => service?.id && barber.serviceIds.includes(service.id),
   );
   const barber = eligibleBarbers.find((item) => item.id === staffId) ?? null;
+  const barberLabel = staffId === ANY_BARBER ? "Any available" : (barber?.name ?? "Not chosen");
   const startLabel =
     startsAt && slots ? (slots.find((slot) => slot.startsAt === startsAt)?.label ?? null) : null;
+  const when = date ? `${dateLabel(date)}${startLabel ? `, ${startLabel}` : ""}` : null;
 
   async function loadSlots(nextDate: string, nextStaff: string) {
     if (!serviceId) return;
@@ -170,7 +176,7 @@ export function BookingFlow({
             : "That time was just taken. Please choose another.",
         );
         setStartsAt(null);
-        setStep(2);
+        setStep(STAGE.time);
         if (date) loadSlots(date, staffId);
         return;
       }
@@ -188,7 +194,7 @@ export function BookingFlow({
   }
 
   if (confirmed) {
-    const when = salonDateTime.format(new Date(confirmed.startsAt));
+    const confirmedWhen = salonDateTime.format(new Date(confirmed.startsAt));
     const isPending = confirmed.status === "PENDING";
     return (
       <div role="status" className="flex max-w-2xl flex-col gap-6">
@@ -212,7 +218,7 @@ export function BookingFlow({
           <dt className="text-bone-500">Barber</dt>
           <dd>{confirmed.barberName}</dd>
           <dt className="text-bone-500">When</dt>
-          <dd>{when}</dd>
+          <dd>{confirmedWhen}</dd>
           <dt className="text-bone-500">Status</dt>
           <dd>{isPending ? "Pending confirmation" : "Confirmed"}</dd>
         </dl>
@@ -221,6 +227,8 @@ export function BookingFlow({
   }
 
   const detailsValid = name.trim().length >= 2 && phone.replace(/\D/g, "").length >= 10 && consent;
+  const canContinue =
+    (step === STAGE.service && serviceId !== null) || (step === STAGE.time && startsAt !== null);
 
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -233,58 +241,66 @@ export function BookingFlow({
           </p>
         )}
 
-        {step === 0 && (
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-4 font-display text-3xl font-light">Choose a service</legend>
-            {services.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={serviceId === item.id}
-                onClick={() => {
-                  setServiceId(item.id);
-                  setStaffId(ANY_BARBER);
-                }}
-                className={cn(
-                  "flex min-h-14 items-center justify-between gap-4 border px-5 py-4 text-left",
-                  serviceId === item.id ? "border-brass-400" : "border-line hover:border-brass-600",
-                )}
-              >
-                <span>
-                  <span className="block font-display text-xl font-light">{item.name}</span>
-                  <span className="text-xs text-bone-500">{item.durationMin} min</span>
-                </span>
-                <span className="text-sm">{formatPrice(item.priceInPaise, item.isFromPrice)}</span>
-              </button>
-            ))}
-          </fieldset>
-        )}
-
-        {step === 1 && (
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-4 font-display text-3xl font-light">Choose a barber</legend>
-            {[{ id: ANY_BARBER, name: "Any available barber" }, ...eligibleBarbers].map(
-              (option) => (
+        {step === STAGE.service && (
+          <div className="flex flex-col gap-10">
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-4 font-display text-3xl font-light">Choose a service</legend>
+              {services.map((item) => (
                 <button
-                  key={option.id}
+                  key={item.id}
                   type="button"
-                  aria-pressed={staffId === option.id}
-                  onClick={() => setStaffId(option.id)}
+                  aria-pressed={serviceId === item.id}
+                  onClick={() => {
+                    setServiceId(item.id);
+                    setStaffId(ANY_BARBER);
+                  }}
                   className={cn(
-                    "flex min-h-14 items-center border px-5 py-4 text-left font-display text-xl font-light",
-                    staffId === option.id
-                      ? "border-brass-400"
+                    "flex min-h-14 items-center justify-between gap-4 rounded-[2px] border px-5 py-4 text-left",
+                    serviceId === item.id
+                      ? "border-brass-400 bg-ink-800"
                       : "border-line hover:border-brass-600",
                   )}
                 >
-                  {option.name}
+                  <span>
+                    <span className="block font-display text-xl">{item.name}</span>
+                    <span className="text-xs text-bone-300">
+                      {formatDuration(item.durationMin)}
+                    </span>
+                  </span>
+                  <span className="text-sm text-brass-300">
+                    {formatPrice(item.priceInPaise, item.isFromPrice)}
+                  </span>
                 </button>
-              ),
+              ))}
+            </fieldset>
+
+            {service && (
+              <fieldset className="flex flex-col gap-4">
+                <legend className="mb-2 font-display text-3xl font-light">Choose a barber</legend>
+                <div className="flex flex-wrap gap-3">
+                  {[{ id: ANY_BARBER, name: "Any available" }, ...eligibleBarbers].map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      aria-pressed={staffId === option.id}
+                      onClick={() => setStaffId(option.id)}
+                      className={cn(
+                        "min-h-12 rounded-full border px-5 text-sm transition-colors",
+                        staffId === option.id
+                          ? "border-brass-400 bg-brass-400 text-ink-950"
+                          : "border-line text-bone-100 hover:border-brass-600",
+                      )}
+                    >
+                      {option.name}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
             )}
-          </fieldset>
+          </div>
         )}
 
-        {step === 2 && (
+        {step === STAGE.time && (
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-4">
               <h2 className="font-display text-3xl font-light">Choose a date</h2>
@@ -300,7 +316,7 @@ export function BookingFlow({
                     aria-pressed={date === option}
                     onClick={() => chooseDate(option)}
                     className={cn(
-                      "min-h-14 min-w-20 shrink-0 snap-start border px-3 text-sm",
+                      "min-h-14 min-w-20 shrink-0 snap-start rounded-[2px] border px-3 text-sm",
                       date === option
                         ? "border-brass-400 bg-brass-400 text-ink-950"
                         : "border-line hover:border-brass-600",
@@ -317,7 +333,7 @@ export function BookingFlow({
                 <h2 className="font-display text-3xl font-light">Choose a time</h2>
                 {slotsError && <p className="text-sm text-err">{slotsError}</p>}
                 {!slotsError && slots === null && (
-                  <p className="text-sm text-bone-500">Loading times…</p>
+                  <p className="text-sm text-bone-300">Loading times…</p>
                 )}
                 {slots && slots.length === 0 && (
                   <p className="text-sm text-bone-300">
@@ -341,7 +357,7 @@ export function BookingFlow({
           </div>
         )}
 
-        {step === 3 && (
+        {step === STAGE.details && (
           <div className="flex max-w-lg flex-col gap-6">
             <h2 className="font-display text-3xl font-light">Your details</h2>
             <Field
@@ -372,7 +388,7 @@ export function BookingFlow({
               onChange={(event) => setEmail(event.target.value)}
             />
             <div className="flex flex-col gap-2">
-              <label htmlFor="booking-notes" className="text-sm">
+              <label htmlFor="booking-notes" className="text-sm text-bone-100">
                 Notes (optional)
               </label>
               <textarea
@@ -397,13 +413,7 @@ export function BookingFlow({
                 about it.
               </span>
             </label>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="flex max-w-lg flex-col gap-6">
-            <h2 className="font-display text-3xl font-light">Review and confirm</h2>
-            <p className="text-bone-300">
+            <p className="text-sm text-bone-300">
               {mode === "instant"
                 ? "Your booking is confirmed as soon as you submit."
                 : "Your request goes to the salon for confirmation."}
@@ -411,63 +421,76 @@ export function BookingFlow({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-8">
-          <Button
-            variant="tertiary"
-            onClick={() => setStep((current) => Math.max(0, current - 1))}
-            disabled={step === 0}
-          >
-            Back
-          </Button>
-          {step < 4 && (
+        {/*
+         * Sticky on phones so the price, duration, barber and the next action stay in
+         * reach while a long form scrolls. On desktop the summary sits in the aside.
+         */}
+        <div className="sticky bottom-0 z-30 -mx-6 flex flex-col gap-3 border-t border-line bg-ink-950/95 px-6 py-4 backdrop-blur-sm md:-mx-12 md:px-12 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm lg:hidden">
+            {service ? (
+              <>
+                <span className="font-display text-lg">{service.name}</span>
+                <span className="inline-flex items-center gap-1.5 text-bone-300">
+                  <Clock size={14} weight="light" aria-hidden="true" />
+                  {formatDuration(service.durationMin)}
+                </span>
+                <span className="text-brass-300">
+                  {formatPrice(service.priceInPaise, service.isFromPrice)}
+                </span>
+                <BarberBadge label={barberLabel} />
+              </>
+            ) : (
+              <span className="text-bone-300">No service chosen yet</span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
             <Button
-              onClick={() => setStep((current) => current + 1)}
-              disabled={
-                (step === 0 && !serviceId) ||
-                (step === 1 && !staffId) ||
-                (step === 2 && !startsAt) ||
-                (step === 3 && !detailsValid)
-              }
+              variant="tertiary"
+              onClick={() => setStep((current) => Math.max(STAGE.service, current - 1))}
+              disabled={step === STAGE.service}
             >
-              Continue
+              Back
             </Button>
-          )}
-          {step === 4 && (
-            <Button onClick={submit} disabled={submitting}>
-              {submitting ? "Booking…" : mode === "instant" ? "Confirm booking" : "Send request"}
-            </Button>
-          )}
+            {step < STAGE.details ? (
+              <Button onClick={() => setStep((current) => current + 1)} disabled={!canContinue}>
+                Continue
+              </Button>
+            ) : (
+              <Button onClick={submit} disabled={submitting || !detailsValid}>
+                {submitting ? "Booking…" : mode === "instant" ? "Confirm booking" : "Send request"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       <aside
         aria-label="Booking summary"
-        className="h-fit border border-line bg-ink-900 p-6 lg:sticky lg:top-28"
+        className="surface-warm hidden h-fit rounded-[2px] border border-line p-6 lg:sticky lg:top-28 lg:block"
       >
-        <p className="text-xs tracking-[0.18em] text-brass-400 uppercase">Summary</p>
-        <dl className="mt-6 flex flex-col gap-4 text-sm">
-          <div>
-            <dt className="text-bone-500">Service</dt>
-            <dd>{service ? `${service.name}, ${service.durationMin} min` : "Not chosen"}</dd>
-          </div>
-          <div>
-            <dt className="text-bone-500">Barber</dt>
-            <dd>{staffId === ANY_BARBER ? "Any available" : (barber?.name ?? "Not chosen")}</dd>
-          </div>
-          <div>
-            <dt className="text-bone-500">Date and time</dt>
-            <dd>
-              {date ? dateLabel(date) : "Not chosen"}
-              {startLabel ? `, ${startLabel}` : ""}
-            </dd>
-          </div>
-          {service && (
-            <div>
-              <dt className="text-bone-500">Price</dt>
-              <dd>{formatPrice(service.priceInPaise, service.isFromPrice)}</dd>
-            </div>
+        <p className="text-sm text-bone-300">Your booking</p>
+        <div className="mt-5 flex flex-col gap-5 text-sm">
+          {service ? (
+            <>
+              <p className="font-display text-2xl">{service.name}</p>
+              <p className="inline-flex items-center gap-2 text-bone-300">
+                <Clock size={16} weight="light" aria-hidden="true" />
+                {formatDuration(service.durationMin)}
+              </p>
+              <p className="font-display text-3xl text-brass-300">
+                {formatPrice(service.priceInPaise, service.isFromPrice)}
+              </p>
+              <BarberBadge label={barberLabel} />
+            </>
+          ) : (
+            <p className="text-bone-300">No service chosen yet.</p>
           )}
-        </dl>
+          <div className="border-t border-line pt-5">
+            <p className="text-bone-300">When</p>
+            <p>{when ?? "Choose a date and time"}</p>
+          </div>
+        </div>
         {isDemo && (
           <p className="mt-6 border-t border-line pt-4 text-xs text-brass-300">
             Demo: sample prices and times. Nothing is sent to a real phone or inbox.

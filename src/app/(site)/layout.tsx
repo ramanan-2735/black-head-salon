@@ -14,11 +14,11 @@ export default async function SiteLayout({ children }: LayoutProps<"/">) {
         Skip to content
       </a>
       <SiteHeader />
-      <div id="main" className="flex flex-1 flex-col pb-24 md:pb-0">
+      <div id="main" className="flex flex-1 flex-col">
         {children}
       </div>
       <SiteFooter business={business} />
-      <MobileBookBar whatsappNumber={business.whatsapp} />
+      <MobileBookBar phone={business.phone} whatsapp={business.whatsapp} />
     </>
   );
 }

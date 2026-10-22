@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { BarberBadge } from "@/components/site/barber-badge";
 import { PlaceholderImage } from "@/components/site/placeholder-image";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { filterGallery, lookCategories } from "@/lib/gallery";
+import { cutCredit, filterGallery, lookCategories } from "@/lib/gallery";
 import { cn } from "@/lib/cn";
 import type { GalleryImage } from "@/lib/repos/types";
 
@@ -25,7 +26,13 @@ function LookImage({ image, sizes }: { image: GalleryImage; sizes: string }) {
   return <PlaceholderImage label={image.alt} aspect="aspect-[4/5] h-full" />;
 }
 
-export function LookbookBrowser({ images }: { images: GalleryImage[] }) {
+export function LookbookBrowser({
+  images,
+  barbers,
+}: {
+  images: GalleryImage[];
+  barbers: { id: string; name: string }[];
+}) {
   const [category, setCategory] = useState<GalleryImage["category"] | "all">("all");
   const [selected, setSelected] = useState<GalleryImage | null>(null);
   const visible = filterGallery(images, category);
@@ -67,8 +74,9 @@ export function LookbookBrowser({ images }: { images: GalleryImage[] }) {
                 <div className="relative aspect-[4/5] w-full overflow-hidden">
                   <LookImage image={image} sizes="(min-width: 768px) 40vw, 100vw" />
                 </div>
-                <span className="flex flex-col gap-1">
-                  <span className="font-display text-xl font-light group-hover:text-brass-300">
+                <span className="flex flex-col gap-2">
+                  <BarberBadge label={cutCredit(image, barbers)} />
+                  <span className="font-display text-xl group-hover:text-brass-300">
                     {image.caption}
                   </span>
                   <span className="text-xs tracking-[0.14em] text-bone-500 uppercase">
@@ -91,6 +99,7 @@ export function LookbookBrowser({ images }: { images: GalleryImage[] }) {
             <div className="relative aspect-[4/5] w-full overflow-hidden">
               <LookImage image={selected} sizes="36rem" />
             </div>
+            <BarberBadge label={cutCredit(selected, barbers)} />
             <p className="text-sm text-bone-300">{selected.alt}</p>
             <div className="flex flex-wrap gap-4">
               <ButtonLink href={`/book?look=${encodeURIComponent(selected.id)}`}>

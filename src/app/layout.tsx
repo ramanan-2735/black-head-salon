@@ -19,7 +19,8 @@ export const metadata: Metadata = {
     default: "Black Head Salon",
     template: "%s — Black Head Salon",
   },
-  description: "Black Head Salon — placeholder description, to be confirmed with the owner.",
+  description:
+    "Black Head Salon — Premier gentlemen's grooming, precision haircuts, skin fades, and beard sculpting in New Panvel.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

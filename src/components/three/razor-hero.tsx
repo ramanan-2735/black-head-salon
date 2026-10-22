@@ -9,10 +9,10 @@ import { canRunRazor3D, type GateInput } from "@/lib/three-gate";
 const RazorCanvas = lazy(() => import("./razor-canvas"));
 
 function readGateInput(): GateInput {
-  const canvas = document.createElement("canvas");
   const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
+  const canvas = document.createElement("canvas");
   return {
-    webgl2: canvas.getContext("webgl2") !== null,
+    webgl2: () => canvas.getContext("webgl2") !== null,
     reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     saveData: nav.connection?.saveData ?? false,
     cores: navigator.hardwareConcurrency ?? 1,

@@ -1,5 +1,6 @@
 export interface GateInput {
-  webgl2: boolean;
+  /** Checked last. Creating a WebGL context is the most expensive test. */
+  webgl2: () => boolean;
   reducedMotion: boolean;
   saveData: boolean;
   cores: number;
@@ -12,10 +13,10 @@ export interface GateInput {
  */
 export function canRunRazor3D(input: GateInput): boolean {
   return (
-    input.webgl2 &&
+    input.width >= 768 &&
     !input.reducedMotion &&
     !input.saveData &&
     input.cores >= 4 &&
-    input.width >= 768
+    input.webgl2()
   );
 }

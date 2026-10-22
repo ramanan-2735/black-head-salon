@@ -73,3 +73,14 @@ test("skip link moves focus to main content", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.locator("#main")).toBeVisible();
 });
+
+test("lookbook credits each cut to a barber and links the Instagram handle", async ({ page }) => {
+  await page.goto("/lookbook");
+  await expect(
+    page.getByText("Cut by Sample barber 1 · Fade & Beard Sculpt").first(),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /@blackheadsalon/ }).first()).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/blackheadsalon/",
+  );
+});
