@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { MobileMenu } from "@/components/site/mobile-menu";
 import { ButtonLink } from "@/components/ui/button";
 import { BOOK_HREF, navLinks } from "@/lib/site-nav";
 
 /**
- * Top navigation. The mobile menu is a native <details> disclosure, so it works
- * with no JavaScript and keeps focus and keyboard behaviour for free.
+ * Top navigation. The mobile menu is a native <details> disclosure that closes itself on
+ * navigation (see MobileMenu).
  */
 export function SiteHeader() {
   return (
@@ -33,26 +34,7 @@ export function SiteHeader() {
           <ButtonLink href={BOOK_HREF} className="min-h-11 px-5">
             Book
           </ButtonLink>
-          <details className="group md:hidden">
-            <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center text-sm text-bone-100">
-              <span className="group-open:hidden">Menu</span>
-              <span className="hidden group-open:inline">Close</span>
-            </summary>
-            <nav
-              aria-label="Mobile"
-              className="absolute inset-x-0 top-20 flex flex-col gap-1 border-b border-line bg-ink-950 px-6 py-6"
-            >
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="min-h-11 py-3 font-display text-3xl font-light"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          </details>
+          <MobileMenu />
         </div>
       </div>
     </header>

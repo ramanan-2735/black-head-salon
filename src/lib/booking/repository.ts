@@ -1,4 +1,4 @@
-import { barbers } from "@/content/staff";
+﻿import { barbers } from "@/content/staff";
 import { bookingRules } from "@/content/booking-rules";
 import { serviceCategories } from "@/content/services";
 import { config } from "@/lib/config";
@@ -6,7 +6,9 @@ import { createDemoBookingRepository, type BookingRepository } from "./booking-r
 import { buildSeedAppointments } from "./seed";
 import { addDays, todayLocal } from "./time";
 
-let instance: BookingRepository | null = null;
+// Route handlers and pages are bundled separately, so a module-level variable would give each
+// its own repository. Keeping the instance on globalThis makes the API and the dashboard share one.
+const globalStore = globalThis as typeof globalThis & { __bookingRepository?: BookingRepository };
 
 /**
  * The booking repository used by the API routes and the owner dashboard. In demo
@@ -17,11 +19,11 @@ let instance: BookingRepository | null = null;
  * would make the build treat it as request-time data.
  */
 export function getBookingRepository(): BookingRepository {
-  if (instance) return instance;
+  if (globalStore.__bookingRepository) return globalStore.__bookingRepository;
 
   const now = new Date();
   const services = serviceCategories.flatMap((category) => category.services);
-  instance = createDemoBookingRepository({
+  const instance = createDemoBookingRepository({
     now: () => new Date(),
     services,
     barbers,
@@ -30,5 +32,7 @@ export function getBookingRepository(): BookingRepository {
     closedDates: [addDays(todayLocal(now), 2)],
     seedAppointments: buildSeedAppointments(now, services, barbers, bookingRules.bufferMin),
   });
+  globalStore.__bookingRepository = instance;
   return instance;
 }
+
